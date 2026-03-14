@@ -4,6 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>How AIOps Works</title>
+
+<meta name="title" content="HAS Infrastructure Academy | AIOps Remediation Engine">
+<meta name="description" content="Interactive IT explainers for AIOps and Financial Infrastructure. Helping IT professionals master complex systems through visualization.">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ciscohaider.github.io/has-infrastructure-academy/aiops-explainer-v2.html">
+<meta property="og:title" content="HAS Infrastructure Academy | AIOps Remediation Engine">
+<meta property="og:description" content="Interactive IT explainers for AIOps and Financial Infrastructure. Helping IT professionals master complex systems through visualization.">
+<meta property="og:image" content="https://ciscohaider.github.io/has-infrastructure-academy/preview.jpg">
+
+<meta property="twitter:card" content="summary_large_image">
+<meta property="twitter:url" content="https://ciscohaider.github.io/has-infrastructure-academy/aiops-explainer-v2.html">
+<meta property="twitter:title" content="HAS Infrastructure Academy | AIOps Remediation Engine">
+<meta property="twitter:description" content="Interactive IT explainers for AIOps and Financial Infrastructure. Helping IT professionals master complex systems through visualization.">
+<meta property="twitter:image" content="https://ciscohaider.github.io/has-infrastructure-academy/preview.jpg">
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Source+Code+Pro:wght@400;500&family=Open+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap');
 
@@ -873,7 +889,6 @@ body {
 <body>
 <div class="app">
 
-  <!-- HERO -->
   <div class="hero">
     <div>
       <div class="hero-tag">Artificial Intelligence for IT Operations</div>
@@ -902,7 +917,6 @@ body {
     </div>
   </div>
 
-  <!-- TABS -->
   <div class="tabs" id="tab-nav">
     <button class="tab-btn active" data-tab="overview">Overview</button>
     <button class="tab-btn" data-tab="pipeline">Data Pipeline</button>
@@ -917,7 +931,6 @@ body {
 
   <div class="tab-content">
 
-    <!-- ═══ OVERVIEW ═══ -->
     <div class="tab-panel active" id="tab-overview">
       <div class="sec-title">What AIOps Solves</div>
       <div class="sec-sub">From reactive noise to proactive intelligence</div>
@@ -965,7 +978,6 @@ body {
       </table>
     </div>
 
-    <!-- ═══ DATA PIPELINE ═══ -->
     <div class="tab-panel" id="tab-pipeline">
       <div class="sec-title">The AIOps Data Pipeline</div>
       <div class="sec-sub">From raw telemetry to actionable insight — click each stage</div>
@@ -1089,7 +1101,6 @@ body {
       </div>
     </div>
 
-    <!-- ═══ ML MODELS ═══ -->
     <div class="tab-panel" id="tab-ml">
       <div class="sec-title">ML Algorithms in AIOps</div>
       <div class="sec-sub">Different problems need different models — click each card</div>
@@ -1172,7 +1183,6 @@ body {
       </div>
     </div>
 
-    <!-- ═══ ANOMALY DETECTION ═══ -->
     <div class="tab-panel" id="tab-anomaly">
       <div class="sec-title">Anomaly Detection in Depth</div>
       <div class="sec-sub">Dynamic baselines replace static thresholds</div>
@@ -1232,7 +1242,6 @@ body {
       </div>
     </div>
 
-    <!-- ═══ CORRELATION ═══ -->
     <div class="tab-panel" id="tab-correlation">
       <div class="sec-title">Event Correlation</div>
       <div class="sec-sub">Turning alert storms into single incidents — click alerts, then Correlate</div>
@@ -1327,7 +1336,6 @@ body {
       </div>
     </div>
 
-    <!-- ═══ REMEDIATION ═══ -->
     <div class="tab-panel" id="tab-remediation">
       <div class="sec-title">Auto-Remediation</div>
       <div class="sec-sub">From detection to fix — without waking anyone up · click each step</div>
@@ -1387,7 +1395,6 @@ body {
       </div>
     </div>
 
-    <!-- ═══ TOOLING ═══ -->
     <div class="tab-panel" id="tab-tooling">
       <div class="sec-title">AIOps Tooling Landscape</div>
       <div class="sec-sub">Platforms · Point solutions · Open source · Cloud-native</div>
@@ -1462,7 +1469,6 @@ body {
       </div>
     </div>
 
-    <!-- ═══ SIMULATOR ═══ -->
     <div class="tab-panel" id="tab-simulator">
       <div class="sec-title">AIOps Engine — Live Simulation</div>
       <div class="sec-sub">Watch AI process and respond to incidents in real time</div>
@@ -1497,7 +1503,6 @@ body {
       </div>
     </div>
 
-    <!-- ═══ MATURITY ═══ -->
     <div class="tab-panel" id="tab-maturity">
       <div class="sec-title">AIOps Maturity Model</div>
       <div class="sec-sub">Five levels from reactive monitoring to autonomous operations — click each level</div>
@@ -1566,10 +1571,7 @@ body {
       </div>
     </div>
 
-  </div><!-- /tab-content -->
-</div><!-- /app -->
-
-<script>
+  </div></div><script>
 // ── Tab switching
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', function() {
@@ -1870,7 +1872,6 @@ window.addEventListener('load', () => {
   if (document.getElementById('tab-anomaly').classList.contains('active')) drawAnomalyChart();
 });
 </script>
-<!-- HAS Watermark -->
 <div style="
   position: fixed;
   top: 18px;

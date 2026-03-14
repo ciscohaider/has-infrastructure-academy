@@ -1,0 +1,1904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How AIOps Works</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Source+Code+Pro:wght@400;500&family=Open+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap');
+
+/* ── TOKENS ── */
+:root {
+  /* Light base */
+  --bg:         #f2f5fa;
+  --surface:    #ffffff;
+  --surface2:   #eef1f7;
+  --surface3:   #e3e8f2;
+  --border:     #cdd5e4;
+  --border2:    #b0bcd4;
+
+  /* Dark panels */
+  --dark:       #0d1520;
+  --dark2:      #111e2e;
+  --dark3:      #162030;
+  --dark-bdr:   #1e3050;
+  --dark-bdr2:  #284060;
+
+  /* Brand colours */
+  --blue:       #1060c8;
+  --blue-l:     #3080e8;
+  --blue-pale:  #deeafa;
+  --cyan:       #008cb0;
+  --cyan-pale:  #d4f0f8;
+  --teal:       #00957a;
+  --teal-pale:  #d4f0ea;
+  --green:      #1a8a3a;
+  --green-pale: #d4edd8;
+  --orange:     #c06000;
+  --orange-pale:#fdebd4;
+  --red:        #c02020;
+  --red-pale:   #fad4d4;
+  --purple:     #7030b8;
+  --purple-pale:#ead4f8;
+
+  /* Text */
+  --ink:        #0d1520;
+  --body:       #344860;
+  --muted:      #6070a0;
+  --faint:      #9aabcc;
+
+  /* Terminal text */
+  --t-ok:       #22cc66;
+  --t-warn:     #ffaa00;
+  --t-err:      #ff5050;
+  --t-info:     #60c0ff;
+  --t-act:      #00e8d0;
+  --t-dim:      #304060;
+  --t-sys:      #80b0ff;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.app {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 44px 24px 100px;
+}
+
+/* ── HERO ── */
+.hero {
+  background: var(--dark);
+  border-radius: 8px;
+  padding: 40px 40px 36px;
+  margin-bottom: 28px;
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 40px;
+  align-items: center;
+  border: 1px solid var(--dark-bdr);
+}
+
+.hero-tag {
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--t-info);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hero-tag::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--t-info);
+  box-shadow: 0 0 8px var(--t-info);
+  animation: blink 2s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.hero h1 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: clamp(3rem, 6vw, 5.5rem);
+  font-weight: 700;
+  line-height: 0.9;
+  color: #ffffff;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+.hero h1 .ai  { color: var(--t-info); }
+.hero h1 .ops { color: var(--t-act); }
+
+.hero-desc {
+  font-size: 0.88rem;
+  color: #8aaccf;
+  line-height: 1.85;
+  font-weight: 300;
+  max-width: 520px;
+}
+.hero-desc strong { color: #ffffff; font-weight: 600; }
+
+.hero-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-card {
+  background: var(--dark2);
+  border: 1px solid var(--dark-bdr);
+  border-left: 3px solid var(--sc-c, var(--blue-l));
+  padding: 10px 14px;
+}
+.sc-num {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--sc-c, var(--t-info));
+  line-height: 1;
+}
+.sc-label {
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.52rem;
+  letter-spacing: 2px;
+  color: #4a6080;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* ── NAV TABS ── */
+.tabs {
+  display: flex;
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px 6px 0 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab-btn {
+  padding: 12px 18px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--muted);
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tab-btn:hover { color: var(--blue); background: var(--blue-pale); }
+.tab-btn.active {
+  color: var(--blue);
+  border-bottom-color: var(--blue);
+  background: var(--blue-pale);
+  font-weight: 600;
+}
+
+/* ── PANELS ── */
+.tab-content {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 32px;
+  min-height: 500px;
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; animation: fadeUp 0.2s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── SECTION HEADERS ── */
+.sec-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.sec-sub {
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 3px;
+  color: var(--faint);
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+/* ── PROSE ── */
+.prose {
+  font-size: 0.88rem;
+  line-height: 1.88;
+  color: var(--body);
+  margin-bottom: 14px;
+  font-weight: 300;
+}
+.prose strong { color: var(--ink); font-weight: 600; }
+.prose em { color: var(--blue); font-style: normal; }
+
+/* ── COMPARE BOXES ── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 18px 0; }
+
+.compare-box {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 18px;
+}
+.cb-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+.cb-list {
+  font-size: 0.78rem;
+  color: var(--body);
+  line-height: 1.9;
+}
+
+/* ── TABLE ── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  margin: 16px 0;
+}
+.data-table th {
+  background: var(--dark);
+  color: #a0c0e8;
+  padding: 9px 14px;
+  text-align: left;
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.56rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 400;
+  border: 1px solid var(--dark-bdr);
+}
+.data-table td {
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  color: var(--body);
+  vertical-align: top;
+  line-height: 1.6;
+}
+.data-table tr:nth-child(even) td { background: var(--surface2); }
+.data-table tr:hover td { background: var(--blue-pale); }
+
+/* ── CALLOUT BOXES ── */
+.callout {
+  border-radius: 5px;
+  padding: 13px 16px;
+  font-size: 0.83rem;
+  line-height: 1.8;
+  color: var(--body);
+  margin: 14px 0;
+  border: 1px solid;
+}
+.callout strong { color: var(--ink); }
+.callout.blue   { background: var(--blue-pale);   border-color: #a0c0e8; border-left: 4px solid var(--blue); }
+.callout.cyan   { background: var(--cyan-pale);   border-color: #80c8dc; border-left: 4px solid var(--cyan); }
+.callout.green  { background: var(--green-pale);  border-color: #80c8a0; border-left: 4px solid var(--green); }
+.callout.orange { background: var(--orange-pale); border-color: #e0a870; border-left: 4px solid var(--orange); }
+.callout.red    { background: var(--red-pale);    border-color: #e09090; border-left: 4px solid var(--red); }
+.callout.teal   { background: var(--teal-pale);   border-color: #70c0b0; border-left: 4px solid var(--teal); }
+
+/* ── CODE BLOCK ── */
+.code-wrap {
+  background: var(--dark);
+  border: 1px solid var(--dark-bdr2);
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 14px 0;
+}
+.code-hdr {
+  background: var(--dark2);
+  padding: 7px 14px;
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.52rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--dark-bdr);
+  color: var(--t-dim);
+}
+.code-hdr span:last-child { color: var(--t-info); }
+.code-body {
+  padding: 16px 18px;
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.67rem;
+  line-height: 1.9;
+  overflow-x: auto;
+  white-space: pre;
+  color: #5880b8;
+}
+.ck { color: #a080f8; }
+.cs { color: #70d890; }
+.cn { color: #f0a050; }
+.cf { color: #60b8f0; }
+.cc { color: #2a4060; }
+.cg { color: var(--t-ok); }
+.ce { color: var(--t-err); }
+.cw { color: var(--t-warn); }
+.cy { color: var(--t-info); }
+
+/* ── PIPELINE STEPS ── */
+.pipeline-wrap { overflow-x: auto; margin: 20px 0; }
+.pipeline {
+  display: flex;
+  min-width: 700px;
+  gap: 0;
+  align-items: stretch;
+}
+
+.pipe-step {
+  flex: 1;
+  position: relative;
+}
+.pipe-step::after {
+  content: '▶';
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--faint);
+  font-size: 0.7rem;
+  z-index: 2;
+}
+.pipe-step:last-child::after { display: none; }
+
+.ps-inner {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--psi-c, var(--blue));
+  padding: 14px 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin: 0 10px;
+  height: 100%;
+}
+.ps-inner:hover, .ps-inner.active {
+  background: var(--blue-pale);
+  border-color: var(--psi-c, var(--blue));
+  box-shadow: 0 2px 12px rgba(16,96,200,0.1);
+}
+
+.psi-icon { font-size: 1.4rem; margin-bottom: 6px; }
+.psi-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--psi-c, var(--blue));
+  letter-spacing: 1px;
+  margin-bottom: 3px;
+}
+.psi-tech {
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.5rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.pipe-detail {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--blue);
+  border-radius: 0 0 5px 5px;
+  padding: 16px 20px;
+  font-size: 0.82rem;
+  color: var(--body);
+  line-height: 1.85;
+  margin-top: 4px;
+  display: none;
+}
+.pipe-detail.open { display: block; animation: fadeUp 0.2s ease; }
+.pipe-detail strong { color: var(--ink); }
+
+/* ── ML CARDS ── */
+.ml-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.ml-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--mlc-c, var(--blue));
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-radius: 4px;
+}
+.ml-card:hover, .ml-card.active {
+  background: var(--blue-pale);
+  border-color: var(--mlc-c, var(--blue));
+  box-shadow: 0 2px 10px rgba(16,96,200,0.08);
+}
+.mlc-icon { font-size: 1.3rem; margin-bottom: 6px; }
+.mlc-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--mlc-c, var(--blue));
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+.mlc-type {
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.5rem;
+  color: var(--faint);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+.mlc-desc { font-size: 0.74rem; color: var(--body); line-height: 1.55; }
+
+.ml-detail {
+  grid-column: 1 / -1;
+  background: var(--dark);
+  border: 1px solid var(--dark-bdr2);
+  border-radius: 5px;
+  padding: 18px 22px;
+  font-size: 0.82rem;
+  color: #8aaccf;
+  line-height: 1.88;
+  display: none;
+}
+.ml-detail.open { display: block; animation: fadeUp 0.2s ease; }
+.ml-detail strong { color: #ffffff; }
+.ml-detail code { color: var(--t-info); font-family: 'Source Code Pro', monospace; font-size: 0.75em; }
+
+/* ── ANOMALY CHART ── */
+.chart-wrap {
+  background: var(--dark);
+  border: 1px solid var(--dark-bdr);
+  border-radius: 6px;
+  padding: 20px;
+  margin: 18px 0;
+}
+.chart-title {
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #4a6080;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+#anomaly-canvas {
+  width: 100%;
+  height: 180px;
+  display: block;
+}
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 10px;
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.55rem;
+  color: #4a6080;
+  letter-spacing: 1px;
+}
+.cl-item { display: flex; align-items: center; gap: 5px; }
+.cl-dot { width: 8px; height: 8px; border-radius: 50%; }
+.replay-btn {
+  background: var(--dark3);
+  border: 1px solid var(--dark-bdr2);
+  color: var(--t-info);
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.52rem;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+.replay-btn:hover { background: var(--dark-bdr); }
+
+/* ── EVENT CORRELATION ── */
+.event-wrap {
+  background: var(--dark);
+  border: 1px solid var(--dark-bdr);
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 18px 0;
+}
+.event-hdr {
+  background: var(--dark2);
+  padding: 9px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--dark-bdr);
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.52rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #4a6080;
+}
+.event-body { padding: 16px; }
+
+.event-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+
+.ev-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  background: var(--dark3);
+  border: 1px solid var(--dark-bdr);
+  border-left: 3px solid var(--ev-c, var(--t-dim));
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.62rem;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.ev-row:hover, .ev-row.sel {
+  background: rgba(16,96,200,0.15);
+  border-color: var(--ev-c, var(--blue-l));
+}
+.ev-time { color: var(--t-dim); width: 64px; flex-shrink: 0; }
+.ev-src {
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-size: 0.5rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: 1px solid;
+  flex-shrink: 0;
+}
+.ev-msg { flex: 1; color: #c8daf0; }
+.ev-badge {
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.badge-crit { background: rgba(255,80,80,0.2); color: #ff7070; border: 1px solid rgba(255,80,80,0.3); }
+.badge-warn { background: rgba(255,170,0,0.15); color: #ffcc44; border: 1px solid rgba(255,170,0,0.3); }
+.badge-info { background: rgba(96,192,255,0.12); color: #60c0ff; border: 1px solid rgba(96,192,255,0.2); }
+
+.corr-action-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.btn-action {
+  padding: 7px 16px;
+  border-radius: 4px;
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.58rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid;
+}
+.btn-primary {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+  font-weight: 600;
+}
+.btn-primary:hover { background: #0850a8; }
+.btn-secondary {
+  background: transparent;
+  color: var(--t-info);
+  border-color: var(--dark-bdr2);
+}
+.btn-secondary:hover { background: rgba(96,192,255,0.1); }
+
+.corr-result {
+  background: var(--dark2);
+  border: 1px solid var(--dark-bdr2);
+  border-left: 4px solid var(--t-act);
+  padding: 14px 16px;
+  display: none;
+}
+.corr-result.open { display: block; animation: fadeUp 0.25s ease; }
+
+/* ── REMEDIATION FLOW ── */
+.rem-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin: 20px 0;
+  align-items: start;
+}
+.rem-step {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--rs-c, var(--teal));
+  padding: 13px 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-radius: 3px;
+  position: relative;
+}
+.rem-step::after {
+  content: '→';
+  position: absolute;
+  right: -11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--faint);
+  font-size: 0.8rem;
+  z-index: 1;
+}
+.rem-step:last-child::after { display: none; }
+.rem-step:hover, .rem-step.active {
+  background: var(--teal-pale);
+  border-color: var(--rs-c, var(--teal));
+}
+.rs-icon { font-size: 1.3rem; margin-bottom: 5px; }
+.rs-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--rs-c, var(--teal));
+  letter-spacing: 1px;
+  margin-bottom: 3px;
+}
+.rs-desc { font-size: 0.62rem; color: var(--muted); font-family: 'Source Code Pro', monospace; line-height: 1.4; }
+
+.rem-detail {
+  grid-column: 1 / -1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--teal);
+  padding: 14px 18px;
+  font-size: 0.82rem;
+  color: var(--body);
+  line-height: 1.85;
+  display: none;
+  border-radius: 4px;
+}
+.rem-detail.open { display: block; animation: fadeUp 0.2s ease; }
+.rem-detail strong { color: var(--ink); }
+
+/* ── TOOL CARDS ── */
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 16px 0;
+}
+.tool-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--purple);
+  padding: 13px 14px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+.tool-card:hover {
+  background: var(--purple-pale);
+  border-color: var(--purple);
+}
+.tc-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--purple);
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+.tc-cat {
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.48rem;
+  color: var(--faint);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.tc-desc { font-size: 0.72rem; color: var(--body); line-height: 1.55; }
+
+/* ── TERMINAL SIMULATOR ── */
+.terminal {
+  background: var(--dark);
+  border: 1px solid var(--dark-bdr2);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 18px;
+}
+.term-bar {
+  background: var(--dark2);
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--dark-bdr);
+}
+.term-dots { display: flex; gap: 5px; }
+.term-dot { width: 9px; height: 9px; border-radius: 50%; }
+.term-label {
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.52rem;
+  letter-spacing: 3px;
+  color: var(--t-dim);
+  text-transform: uppercase;
+  flex: 1;
+  text-align: center;
+}
+.term-out {
+  padding: 16px;
+  min-height: 300px;
+  max-height: 420px;
+  overflow-y: auto;
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.64rem;
+  line-height: 1.85;
+}
+.tl { display: block; animation: fadeIn 0.15s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+.sim-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--dark-bdr);
+  background: #080e18;
+}
+.sim-btn {
+  padding: 6px 13px;
+  background: transparent;
+  border: 1px solid var(--dark-bdr2);
+  color: var(--t-dim);
+  font-family: 'Source Code Pro', monospace;
+  font-size: 0.56rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.13s;
+}
+.sim-btn:hover { border-color: var(--t-info); color: var(--t-info); background: rgba(96,192,255,0.07); }
+.sim-btn-run {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+  font-weight: 600;
+}
+.sim-btn-run:hover { background: #0850a8; }
+.sim-btn-run:disabled { background: #1a2840; border-color: var(--dark-bdr); color: var(--t-dim); cursor: not-allowed; }
+
+/* ── MATURITY ── */
+.mat-levels {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin: 20px 0;
+}
+.mat-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--mc-c, var(--faint));
+  padding: 14px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+.mat-card:hover, .mat-card.active {
+  background: var(--blue-pale);
+  border-color: var(--mc-c, var(--blue));
+}
+.mc-num {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--mc-c, var(--faint));
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.mc-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.mc-desc { font-size: 0.67rem; color: var(--muted); font-family: 'Source Code Pro', monospace; line-height: 1.4; }
+
+.mat-detail {
+  background: var(--dark);
+  border: 1px solid var(--dark-bdr2);
+  border-radius: 5px;
+  padding: 18px 22px;
+  font-size: 0.82rem;
+  color: #8aaccf;
+  line-height: 1.88;
+  margin-top: 4px;
+  display: none;
+}
+.mat-detail.open { display: block; animation: fadeUp 0.2s ease; }
+.mat-detail strong { color: #ffffff; }
+
+/* Progress bar */
+.mat-progress {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.mat-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), var(--cyan), var(--green));
+  border-radius: 3px;
+  width: 0%;
+  transition: width 0.6s ease;
+}
+
+@media (max-width: 720px) {
+  .hero { grid-template-columns: 1fr; }
+  .hero-stats { display: none; }
+  .two-col { grid-template-columns: 1fr; }
+  .ml-grid { grid-template-columns: 1fr 1fr; }
+  .tool-grid { grid-template-columns: 1fr 1fr; }
+  .mat-levels { grid-template-columns: 1fr 1fr; }
+  .rem-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div>
+      <div class="hero-tag">Artificial Intelligence for IT Operations</div>
+      <h1><span class="ai">AI</span><span class="ops">Ops</span></h1>
+      <p class="hero-desc">
+        AIOps applies <strong>machine learning and big data</strong> to automate and enhance IT operations — transforming thousands of raw alerts per day into a handful of actionable incidents. It replaces static threshold monitoring with <strong>dynamic baselines</strong>, manual root cause analysis with <strong>ML-driven inference</strong>, and reactive firefighting with <strong>proactive detection and auto-remediation</strong>.
+      </p>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-card" style="--sc-c:#ff6060">
+        <div class="sc-num">11,000+</div>
+        <div class="sc-label">Raw alerts/day (enterprise)</div>
+      </div>
+      <div class="stat-card" style="--sc-c:var(--t-info)">
+        <div class="sc-num">~90%</div>
+        <div class="sc-label">Noise reduction after AIOps</div>
+      </div>
+      <div class="stat-card" style="--sc-c:var(--t-ok)">
+        <div class="sc-num">60–70%</div>
+        <div class="sc-label">MTTR improvement</div>
+      </div>
+      <div class="stat-card" style="--sc-c:var(--t-act)">
+        <div class="sc-num">Level 3–4</div>
+        <div class="sc-label">Where most enterprises target</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs" id="tab-nav">
+    <button class="tab-btn active" data-tab="overview">Overview</button>
+    <button class="tab-btn" data-tab="pipeline">Data Pipeline</button>
+    <button class="tab-btn" data-tab="ml">ML Models</button>
+    <button class="tab-btn" data-tab="anomaly">Anomaly Detection</button>
+    <button class="tab-btn" data-tab="correlation">Event Correlation</button>
+    <button class="tab-btn" data-tab="remediation">Auto-Remediation</button>
+    <button class="tab-btn" data-tab="tooling">Tooling</button>
+    <button class="tab-btn" data-tab="simulator">Live Simulator</button>
+    <button class="tab-btn" data-tab="maturity">Maturity Model</button>
+  </div>
+
+  <div class="tab-content">
+
+    <!-- ═══ OVERVIEW ═══ -->
+    <div class="tab-panel active" id="tab-overview">
+      <div class="sec-title">What AIOps Solves</div>
+      <div class="sec-sub">From reactive noise to proactive intelligence</div>
+
+      <p class="prose">Modern IT environments generate millions of events per day across cloud, on-prem, containers, network, and applications. Traditional monitoring produces <strong>alert storms</strong> — thousands of notifications where 90%+ are noise, duplicates, or symptoms of a single root cause. Human operators physically cannot process this volume fast enough to prevent business impact.</p>
+      <p class="prose">AIOps ingests all of this signal, applies machine learning to separate noise from meaningful events, <em>correlates related alerts into a single incident</em>, predicts failures before they occur, identifies root causes, and in mature implementations — triggers automated remediation without human intervention.</p>
+
+      <div class="two-col">
+        <div class="compare-box" style="background:#fff8f8;border-color:#f0b0b0;border-left:4px solid var(--red)">
+          <div class="cb-title" style="color:var(--red)">❌ WITHOUT AIOPS</div>
+          <div class="cb-list">
+            • 11,000+ raw alerts per day<br>
+            • Engineers triaging noise instead of fixing problems<br>
+            • Same incidents recur — no pattern learning<br>
+            • Root cause found hours after impact starts<br>
+            • Reactive: users report the outage first<br>
+            • Alert fatigue → critical alerts missed<br>
+            • MTTR measured in hours
+          </div>
+        </div>
+        <div class="compare-box" style="background:#f4fdf6;border-color:#90cc90;border-left:4px solid var(--green)">
+          <div class="cb-title" style="color:var(--green)">✅ WITH AIOPS</div>
+          <div class="cb-list">
+            • 90%+ noise filtered before humans see it<br>
+            • 100 correlated incidents replace 11,000 alerts<br>
+            • Patterns recognized and acted on automatically<br>
+            • Root cause surfaced within minutes<br>
+            • Proactive: anomalies detected before failure<br>
+            • High-confidence signals only reach engineers<br>
+            • MTTR measured in minutes
+          </div>
+        </div>
+      </div>
+
+      <table class="data-table">
+        <thead><tr><th>AIOps Capability</th><th>What It Does</th><th>Traditional Equivalent</th><th>Impact</th></tr></thead>
+        <tbody>
+          <tr><td style="color:var(--blue);font-weight:600">Anomaly Detection</td><td>ML detects deviations from learned normal behavior</td><td>Static threshold (CPU &gt; 80%)</td><td>Catches subtle multi-dimensional anomalies thresholds miss</td></tr>
+          <tr><td style="color:var(--blue);font-weight:600">Event Correlation</td><td>Groups related alerts from multiple tools into one incident</td><td>Manual alert linking by engineers</td><td>Reduces 1,000 alerts to 10 incidents automatically</td></tr>
+          <tr><td style="color:var(--blue);font-weight:600">Root Cause Analysis</td><td>Traces incident to originating failure using topology + ML</td><td>Manual log diving, war rooms</td><td>RCA in minutes vs hours</td></tr>
+          <tr><td style="color:var(--blue);font-weight:600">Predictive Alerting</td><td>Forecasts failures hours before they occur</td><td>None — purely reactive</td><td>Shifts ops from reactive to proactive</td></tr>
+          <tr><td style="color:var(--blue);font-weight:600">Auto-Remediation</td><td>Executes known fixes automatically for known failure patterns</td><td>Runbook execution by on-call engineer</td><td>Eliminates human delay; 24/7 coverage</td></tr>
+          <tr><td style="color:var(--blue);font-weight:600">Noise Reduction</td><td>Deduplicates, suppresses, and filters low-value alerts</td><td>Alert rules and maintenance windows</td><td>90%+ reduction in actionable alert volume</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ═══ DATA PIPELINE ═══ -->
+    <div class="tab-panel" id="tab-pipeline">
+      <div class="sec-title">The AIOps Data Pipeline</div>
+      <div class="sec-sub">From raw telemetry to actionable insight — click each stage</div>
+
+      <p class="prose">AIOps begins with <strong>unified data ingestion</strong> — pulling every signal from every tool into a single analytical platform. The pipeline normalizes disparate formats, enriches with context, applies ML at each stage, and progressively reduces volume while increasing signal quality.</p>
+
+      <div class="pipeline-wrap">
+        <div class="pipeline">
+          <div class="pipe-step">
+            <div class="ps-inner" style="--psi-c:var(--blue)" onclick="togglePipe('pd1',this)">
+              <div class="psi-icon">📥</div>
+              <div class="psi-name">Ingest</div>
+              <div class="psi-tech">Metrics · Logs · Traces · Events · Topology</div>
+            </div>
+          </div>
+          <div class="pipe-step">
+            <div class="ps-inner" style="--psi-c:var(--cyan)" onclick="togglePipe('pd2',this)">
+              <div class="psi-icon">⚙️</div>
+              <div class="psi-name">Normalize</div>
+              <div class="psi-tech">Schema map · Dedup · Enrich · Tag</div>
+            </div>
+          </div>
+          <div class="pipe-step">
+            <div class="ps-inner" style="--psi-c:var(--teal)" onclick="togglePipe('pd3',this)">
+              <div class="psi-icon">🔬</div>
+              <div class="psi-name">Detect</div>
+              <div class="psi-tech">Anomaly ML · Dynamic baseline · Forecast</div>
+            </div>
+          </div>
+          <div class="pipe-step">
+            <div class="ps-inner" style="--psi-c:var(--orange)" onclick="togglePipe('pd4',this)">
+              <div class="psi-icon">🔗</div>
+              <div class="psi-name">Correlate</div>
+              <div class="psi-tech">Event grouping · Topology · RCA engine</div>
+            </div>
+          </div>
+          <div class="pipe-step">
+            <div class="ps-inner" style="--psi-c:var(--purple)" onclick="togglePipe('pd5',this)">
+              <div class="psi-icon">⚡</div>
+              <div class="psi-name">Act</div>
+              <div class="psi-tech">Alert routing · Auto-remediate · Ticket</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-detail" id="pd1"><strong>Data Ingestion — The Four Pillars</strong><br><br>
+        AIOps ingests all four telemetry types simultaneously:<br><br>
+        <strong>Metrics</strong> — Time-series numbers: CPU %, memory, request rate, latency, queue depth. Collected via agents (Prometheus, Datadog, Telegraf) at 10–60 second intervals.<br>
+        <strong>Logs</strong> — Unstructured text events from apps, OS, and network devices. Terabytes/day in large environments. Ingested via Fluentd, Logstash, or native agents into Elasticsearch or a SIEM.<br>
+        <strong>Traces</strong> — Distributed request paths across services (OpenTelemetry, Jaeger). Critical for microservice root cause analysis.<br>
+        <strong>Events/Topology</strong> — Change events (deployments, config changes), CMDB topology (which service depends on what), CI/CD pipeline events. Turns a metric anomaly into a root cause.
+      </div>
+      <div class="pipe-detail" id="pd2"><strong>Normalization — One Unified Data Model</strong><br><br>
+        Raw telemetry arrives in dozens of incompatible formats (Prometheus, Syslog, JSON, CEF, SNMP, proprietary APIs). Normalization maps all of these to a common schema:<br><br>
+        <strong>Schema mapping</strong> — "host" vs "hostname" vs "server" → unified "entity.name" field<br>
+        <strong>Deduplication</strong> — Same event from multiple monitoring sources collapsed to one record<br>
+        <strong>Enrichment</strong> — Append CMDB context: which service, team, environment, and SLA tier does this entity belong to?<br>
+        <strong>Tagging</strong> — Business context applied: service name, cost center, on-call owner<br><br>
+        This layer is where most AIOps projects spend 60–70% of implementation time — data quality determines everything downstream.
+      </div>
+      <div class="pipe-detail" id="pd3"><strong>Detection — Dynamic ML Baselines Replace Static Thresholds</strong><br><br>
+        Traditional monitoring: CPU &gt; 80% = alert. This fires constantly during normal batch jobs (false positives) and misses gradual degradation that stays below 80% (false negatives).<br><br>
+        AIOps learns what normal looks like per entity per time window:<br><br>
+        <strong>Baseline learning</strong> — 2–4 weeks of data to learn weekday vs weekend, business hours vs off-hours patterns<br>
+        <strong>Dynamic thresholds</strong> — "Alert when CPU is 2σ above expected for this time-of-day on this server"<br>
+        <strong>Multivariate anomalies</strong> — CPU normal + memory normal + latency elevated + error rate elevated = anomaly even without a single threshold breach<br>
+        <strong>Forecasting</strong> — "Disk will fill in 6 hours at current write rate" → alert before impact
+      </div>
+      <div class="pipe-detail" id="pd4"><strong>Correlation — 1,000 Alerts Become 10 Incidents</strong><br><br>
+        A single database failure generates hundreds of alerts: connection timeouts on 30 app servers, health check failures on a load balancer, latency spikes in 5 services — all from the same root cause.<br><br>
+        Correlation groups these using:<br><br>
+        <strong>Temporal correlation</strong> — Events within the same time window are likely related<br>
+        <strong>Topological correlation</strong> — Events on entities that have a dependency relationship are grouped<br>
+        <strong>Semantic similarity</strong> — NLP on alert messages identifies similar error text across tools<br>
+        <strong>Historical correlation</strong> — "These alerts appeared together 47 times before — they always represent the same incident type"<br><br>
+        Result: one ticket with one owner, not 50 duplicate pages.
+      </div>
+      <div class="pipe-detail" id="pd5"><strong>Action — Closing the Loop</strong><br><br>
+        The pipeline produces an enriched, correlated, prioritized incident with suggested or automated resolution:<br><br>
+        <strong>Smart routing</strong> — Route to the right team based on service topology, not just alert source<br>
+        <strong>Context injection</strong> — ServiceNow/Jira ticket pre-populated with correlated events, probable root cause, affected services, recent changes, and relevant runbooks<br>
+        <strong>Auto-remediation</strong> — For known patterns with high confidence: restart service, scale pod, clear cache, failover<br>
+        <strong>Feedback loop</strong> — Engineer actions (close, escalate, false positive) feed back into the ML model to continuously improve accuracy
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-hdr"><span>AIOps Pipeline — Logical Architecture</span><span>DATA FLOW</span></div>
+        <div class="code-body">┌────────────────────── DATA SOURCES ───────────────────────────────┐
+│ Prometheus  Datadog  Splunk  ELK  CloudWatch  PagerDuty  CMDB     │
+│ Jaeger/OTEL  Nagios  Zabbix  AppDynamics  New Relic  Netcool      │
+└───────────────────────────┬───────────────────────────────────────┘
+                            │ (streaming via Kafka / REST / webhook)
+                            ▼
+┌──────────────────── INGESTION & NORMALIZATION ─────────────────────┐
+│  Schema mapping  │  Deduplication  │  CMDB enrichment  │  Tagging  │
+└───────────────────────────┬───────────────────────────────────────┘
+               ┌────────────┴────────────┐
+               ▼                         ▼
+  ┌─────────────────────┐    ┌──────────────────────────┐
+  │   METRICS STORE     │    │    LOG ANALYTICS          │
+  │   Anomaly detection │    │    NLP + pattern extract  │
+  │   Dynamic baselines │    │    Template clustering    │
+  └──────────┬──────────┘    └──────────────┬───────────┘
+             │                              │
+             └──────────────┬──────────────┘
+                            ▼
+              ┌─────────────────────────┐
+              │   CORRELATION ENGINE    │
+              │   DBSCAN clustering     │
+              │   Topology graph (GNN)  │
+              │   Root cause inference  │
+              └─────────────┬───────────┘
+                            ▼
+              ┌─────────────────────────┐
+              │   ACTION LAYER          │
+              │   Route │ Remediate     │
+              │   Ticket │ Notify       │
+              │   Feedback → ML update  │
+              └─────────────────────────┘</div>
+      </div>
+    </div>
+
+    <!-- ═══ ML MODELS ═══ -->
+    <div class="tab-panel" id="tab-ml">
+      <div class="sec-title">ML Algorithms in AIOps</div>
+      <div class="sec-sub">Different problems need different models — click each card</div>
+
+      <p class="prose">AIOps is not a single AI model — it is an <strong>ensemble of specialized models</strong>, each optimized for a specific task. Anomaly detection, event correlation, log parsing, root cause analysis, and failure prediction each require different algorithmic approaches working together.</p>
+
+      <div class="ml-grid">
+        <div class="ml-card" style="--mlc-c:var(--cyan)" onclick="toggleML('ml1',this)">
+          <div class="mlc-icon">🌲</div>
+          <div class="mlc-name">Isolation Forest</div>
+          <div class="mlc-type">Unsupervised · Anomaly Detection</div>
+          <div class="mlc-desc">Isolates anomalies by randomly partitioning feature space. Anomalies require fewer splits — they are rare and different from normal points.</div>
+        </div>
+        <div class="ml-card" style="--mlc-c:var(--blue)" onclick="toggleML('ml2',this)">
+          <div class="mlc-icon">📈</div>
+          <div class="mlc-name">LSTM / Transformer</div>
+          <div class="mlc-type">Deep Learning · Time Series Forecasting</div>
+          <div class="mlc-desc">Learns temporal patterns in metric streams. Predicts expected values and flags deviations. Handles seasonality and trend automatically.</div>
+        </div>
+        <div class="ml-card" style="--mlc-c:var(--teal)" onclick="toggleML('ml3',this)">
+          <div class="mlc-icon">🔵</div>
+          <div class="mlc-name">DBSCAN Clustering</div>
+          <div class="mlc-type">Unsupervised · Event Grouping</div>
+          <div class="mlc-desc">Groups similar alerts into clusters without requiring a predefined count. Events in the same cluster are likely related. Foundation of event correlation.</div>
+        </div>
+        <div class="ml-card" style="--mlc-c:var(--orange)" onclick="toggleML('ml4',this)">
+          <div class="mlc-icon">🕸️</div>
+          <div class="mlc-name">Graph Neural Network</div>
+          <div class="mlc-type">Deep Learning · Root Cause Analysis</div>
+          <div class="mlc-desc">Models IT topology as a graph. Propagates signals from symptoms to root causes following dependency edges. Most powerful RCA approach available.</div>
+        </div>
+        <div class="ml-card" style="--mlc-c:var(--purple)" onclick="toggleML('ml5',this)">
+          <div class="mlc-icon">📝</div>
+          <div class="mlc-name">NLP / Log Parsing</div>
+          <div class="mlc-type">NLP · Log Intelligence</div>
+          <div class="mlc-desc">Parses unstructured log text into structured events. Identifies log templates, clusters similar messages, extracts entities and error codes.</div>
+        </div>
+        <div class="ml-card" style="--mlc-c:var(--green)" onclick="toggleML('ml6',this)">
+          <div class="mlc-icon">🌳</div>
+          <div class="mlc-name">Random Forest / XGBoost</div>
+          <div class="mlc-type">Supervised · Incident Classification</div>
+          <div class="mlc-desc">Classifies incidents by type, severity, and routing team. Trained on labeled historical incident data. High accuracy for known failure patterns.</div>
+        </div>
+
+        <div class="ml-detail" id="ml1">
+          <strong>Isolation Forest</strong> — Works by randomly selecting a feature and a split value. Anomalies are isolated in very few splits because they occupy sparse regions of the feature space. Normal points require many splits — they are densely packed with other normal points.<br><br>
+          <strong>AIOps application:</strong> Detecting unusual combinations of metrics that individually look normal. CPU at 60% and memory at 70% might each be fine — but their combination with a flat request rate (normally CPU and request rate are correlated) signals an anomaly.<br><br>
+          <strong>Advantages:</strong> No labeled training data needed. Handles high-dimensional data well. Fast at inference. Works well for multivariate anomalies.<br>
+          <strong>Limitations:</strong> Struggles with anomalies that form clusters. Doesn't capture time-series seasonality.
+        </div>
+        <div class="ml-detail" id="ml2">
+          <strong>LSTM (Long Short-Term Memory) and Transformers</strong> — Recurrent networks designed for sequential data. LSTMs maintain memory of past values to predict future values. Transformers use attention to capture long-range dependencies.<br><br>
+          <strong>AIOps application:</strong> Metric forecasting and dynamic baselines. The model learns: "This API's response time is normally 120ms on weekday mornings but spikes to 280ms every Monday during the backup job. Flag when it exceeds 400ms during that window."<br><br>
+          <strong>Advantages:</strong> Captures complex seasonality and trends. Handles multi-step forecasting.<br>
+          <strong>Limitations:</strong> Requires 2–4 weeks of training data. Computationally expensive. Needs retraining after major infrastructure changes.
+        </div>
+        <div class="ml-detail" id="ml3">
+          <strong>DBSCAN (Density-Based Spatial Clustering)</strong> — Groups points that are densely packed together while marking outliers as noise. Unlike k-means, it doesn't require specifying cluster count in advance — critical for alert correlation where you don't know how many incidents are happening.<br><br>
+          <strong>AIOps application:</strong> Alert storm correlation. When 500 alerts arrive in 60 seconds, DBSCAN groups them into clusters based on similarity in time, source, topology proximity, and message content. Each cluster becomes one incident.<br><br>
+          <strong>Advantages:</strong> Handles arbitrary cluster shapes. Automatically identifies outliers. No predetermined cluster count.<br>
+          <strong>Limitations:</strong> Sensitive to the epsilon (neighborhood distance) parameter. Can struggle when clusters have very different densities.
+        </div>
+        <div class="ml-detail" id="ml4">
+          <strong>Graph Neural Networks for Root Cause Analysis</strong> — Represents the IT environment as a graph: nodes are services, databases, servers, containers; edges are dependencies and network connections. When an anomaly occurs, the GNN propagates the signal backward through the dependency graph to find where the failure originated.<br><br>
+          <strong>AIOps application:</strong> Frontend API slow → trace through service graph → database query latency spike → disk I/O saturation on DB host → root cause: disk controller issue.<br><br>
+          <strong>Advantages:</strong> Naturally handles complex topologies. Identifies non-obvious causal chains. Improves as topology data enriches.<br>
+          <strong>Limitations:</strong> Requires accurate, up-to-date CMDB data. Computationally intensive for large graphs.
+        </div>
+        <div class="ml-detail" id="ml5">
+          <strong>NLP for Log Intelligence</strong> — Log lines are unstructured: <code>"2026-03-12 ERROR Connection pool exhausted after 30s — host=db-01 pool=payment-db"</code>. NLP models parse this into structured events, cluster similar messages, identify log templates (constant parts vs variable parts), and extract entities (hostnames, error codes, durations).<br><br>
+          <strong>Key techniques:</strong> Drain algorithm (fast log template extraction), BERT embeddings for semantic similarity clustering, Named Entity Recognition for extracting IPs/hostnames, LLM-based log summarization for incident context.<br><br>
+          <strong>AIOps application:</strong> "These 10,000 log lines across 30 servers all match the template 'Connection pool exhausted — pool=[X]' — this is one event type, not 10,000 separate alerts."
+        </div>
+        <div class="ml-detail" id="ml6">
+          <strong>Random Forest / XGBoost for Incident Classification</strong> — Supervised learning trained on historical incidents with labeled outcomes (incident type, root cause category, team to route to, time to resolve). Features include: alert types, affected services, time of day, recent change events, topology context.<br><br>
+          <strong>AIOps application:</strong> "New incident arrives. Based on 3,000 similar historical incidents: 87% probability this is a database connection pool issue. Likely root cause: DB host disk I/O. Recommended team: Database SRE. Estimated resolution: 23 minutes. Relevant runbook: DB-CONN-POOL-RESET."<br><br>
+          <strong>Advantages:</strong> Highly interpretable (feature importance). Fast inference. Handles mixed feature types.<br>
+          <strong>Limitations:</strong> Requires labeled historical data. Doesn't generalize to new/unseen incident types.
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ANOMALY DETECTION ═══ -->
+    <div class="tab-panel" id="tab-anomaly">
+      <div class="sec-title">Anomaly Detection in Depth</div>
+      <div class="sec-sub">Dynamic baselines replace static thresholds</div>
+
+      <p class="prose">Traditional monitoring uses <strong>static thresholds</strong> — CPU &gt; 80% = alert. These are blunt instruments: they fire constantly during normal high-load periods (false positives creating alert fatigue) and miss gradual degradation that stays below the threshold (false negatives). AIOps replaces static thresholds with <em>learned dynamic baselines</em> specific to each entity, time of day, and day of week.</p>
+
+      <div class="chart-wrap">
+        <div class="chart-title">
+          <span>API Response Time — Dynamic Baseline vs Static Threshold</span>
+          <button class="replay-btn" onclick="drawAnomalyChart()">↺ Replay</button>
+        </div>
+        <canvas id="anomaly-canvas"></canvas>
+        <div class="chart-legend">
+          <div class="cl-item"><div class="cl-dot" style="background:#4a90d8"></div><span>Actual metric</span></div>
+          <div class="cl-item"><div class="cl-dot" style="background:#00d8ff"></div><span>Dynamic baseline (AIOps)</span></div>
+          <div class="cl-item"><div class="cl-dot" style="background:rgba(0,216,255,0.25);border:1px solid #00d8ff"></div><span>Expected band ±2σ</span></div>
+          <div class="cl-item"><div class="cl-dot" style="background:#ff5050"></div><span>Static threshold</span></div>
+          <div class="cl-item"><div class="cl-dot" style="background:#ffaa00"></div><span>True anomaly (AIOps flag)</span></div>
+          <div class="cl-item"><div class="cl-dot" style="background:#ff5050;opacity:0.4"></div><span>False positive (static)</span></div>
+        </div>
+      </div>
+
+      <div class="callout orange">
+        <strong>Key insight:</strong> The static threshold fires twice during normal business-hour peaks (false positives — alert fatigue). It misses the genuine anomaly (false negative — gradual degradation below threshold). The AIOps dynamic baseline catches only the true anomaly because it knows what's normal for that specific time window.
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-hdr"><span>Dynamic Baseline Detector — Conceptual Implementation</span><span>PYTHON</span></div>
+        <div class="code-body"><span class="ck">class</span> <span class="cf">DynamicBaselineDetector</span>:
+    <span class="ck">def</span> <span class="cf">__init__</span>(<span class="ck">self</span>, lookback_weeks=<span class="cn">4</span>, sensitivity=<span class="cn">2.0</span>):
+        <span class="ck">self</span>.lookback    = lookback_weeks
+        <span class="ck">self</span>.sensitivity = sensitivity  <span class="cc"># σ multiplier — 2.0 = 95% confidence band</span>
+
+    <span class="ck">def</span> <span class="cf">get_baseline</span>(<span class="ck">self</span>, entity, timestamp):
+        <span class="cc"># Fetch same hour-of-day + day-of-week for past N weeks</span>
+        history = <span class="ck">self</span>.db.<span class="cf">query</span>(
+            entity       = entity,
+            hour_of_day  = timestamp.hour,
+            day_of_week  = timestamp.weekday(),
+            weeks_back   = <span class="ck">self</span>.lookback
+        )
+        mean, std = np.<span class="cf">mean</span>(history), np.<span class="cf">std</span>(history)
+        <span class="ck">return</span> {
+            <span class="cs">'mean'</span> : mean,
+            <span class="cs">'upper'</span>: mean + <span class="ck">self</span>.sensitivity * std,
+            <span class="cs">'lower'</span>: mean - <span class="ck">self</span>.sensitivity * std,
+        }
+
+    <span class="ck">def</span> <span class="cf">is_anomaly</span>(<span class="ck">self</span>, entity, timestamp, value):
+        b = <span class="ck">self</span>.<span class="cf">get_baseline</span>(entity, timestamp)
+        <span class="ck">return</span> value > b[<span class="cs">'upper'</span>] <span class="ck">or</span> value < b[<span class="cs">'lower'</span>]
+
+<span class="cc"># Example outputs:</span>
+<span class="cc"># Monday 9AM baseline for api-gateway: mean=120ms, band=85–155ms</span>
+<span class="cc"># Sunday 3AM baseline for api-gateway: mean=28ms,  band=18–38ms</span>
+<span class="cc"># Same 160ms value: NORMAL on Monday morning, ANOMALY on Sunday night</span></div>
+      </div>
+    </div>
+
+    <!-- ═══ CORRELATION ═══ -->
+    <div class="tab-panel" id="tab-correlation">
+      <div class="sec-title">Event Correlation</div>
+      <div class="sec-sub">Turning alert storms into single incidents — click alerts, then Correlate</div>
+
+      <p class="prose">A single infrastructure failure cascades into <strong>hundreds of alerts</strong> from every monitoring tool watching the affected components. Without correlation, each alert becomes a separate ticket and page. With AIOps correlation, all related alerts collapse into one enriched incident with a single owner and a suggested root cause.</p>
+
+      <div class="event-wrap">
+        <div class="event-hdr">
+          <span>Incoming Alert Stream — Select alerts and click Correlate</span>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-action btn-secondary" onclick="selectAllAlerts()">Select All</button>
+            <button class="btn-action btn-primary" onclick="runCorrelation()">Correlate →</button>
+          </div>
+        </div>
+        <div class="event-body">
+          <div class="event-list" id="event-list">
+            <div class="ev-row" style="--ev-c:#ff6060" onclick="this.classList.toggle('sel')">
+              <span class="ev-time">14:23:01</span>
+              <span class="ev-src" style="color:#60b0ff;border-color:rgba(96,176,255,0.4)">Prometheus</span>
+              <span class="ev-msg">db-primary: Connection pool exhausted (0/200 available)</span>
+              <span class="ev-badge badge-crit">Critical</span>
+            </div>
+            <div class="ev-row" style="--ev-c:#ffaa00" onclick="this.classList.toggle('sel')">
+              <span class="ev-time">14:23:04</span>
+              <span class="ev-src" style="color:#ffaa44;border-color:rgba(255,170,68,0.4)">AppDynamics</span>
+              <span class="ev-msg">payment-api: Response time p99 &gt; 8000ms (threshold: 500ms)</span>
+              <span class="ev-badge badge-warn">Warning</span>
+            </div>
+            <div class="ev-row" style="--ev-c:#ff6060" onclick="this.classList.toggle('sel')">
+              <span class="ev-time">14:23:06</span>
+              <span class="ev-src" style="color:#60b0ff;border-color:rgba(96,176,255,0.4)">Prometheus</span>
+              <span class="ev-msg">auth-service: DB query timeout after 30s — 847 errors/min</span>
+              <span class="ev-badge badge-crit">Critical</span>
+            </div>
+            <div class="ev-row" style="--ev-c:#ffaa00" onclick="this.classList.toggle('sel')">
+              <span class="ev-time">14:23:09</span>
+              <span class="ev-src" style="color:#60d0a8;border-color:rgba(96,208,168,0.4)">PagerDuty</span>
+              <span class="ev-msg">user-service: Health check failing — HTTP 503 on /health</span>
+              <span class="ev-badge badge-warn">Warning</span>
+            </div>
+            <div class="ev-row" style="--ev-c:#ff6060" onclick="this.classList.toggle('sel')">
+              <span class="ev-time">14:23:11</span>
+              <span class="ev-src" style="color:#b888f8;border-color:rgba(184,136,248,0.4)">Datadog</span>
+              <span class="ev-msg">db-primary: Disk I/O wait 94% — iowait elevated for 8 minutes</span>
+              <span class="ev-badge badge-crit">Critical</span>
+            </div>
+            <div class="ev-row" style="--ev-c:#60b0ff" onclick="this.classList.toggle('sel')">
+              <span class="ev-time">14:23:13</span>
+              <span class="ev-src" style="color:#70d080;border-color:rgba(112,208,128,0.4)">Splunk</span>
+              <span class="ev-msg">db-primary: "waiting for lock on object 0x..." repeated 2,341 times</span>
+              <span class="ev-badge badge-info">Info</span>
+            </div>
+            <div class="ev-row" style="--ev-c:#ffaa00" onclick="this.classList.toggle('sel')">
+              <span class="ev-time">14:23:15</span>
+              <span class="ev-src" style="color:#ffaa44;border-color:rgba(255,170,68,0.4)">AppDynamics</span>
+              <span class="ev-msg">order-service: Transaction error rate 34% — JDBC connection failures</span>
+              <span class="ev-badge badge-warn">Warning</span>
+            </div>
+            <div class="ev-row" style="--ev-c:#60b0ff" onclick="this.classList.toggle('sel')">
+              <span class="ev-time">14:23:18</span>
+              <span class="ev-src" style="color:#60b0ff;border-color:rgba(96,176,255,0.4)">Prometheus</span>
+              <span class="ev-msg">load-balancer-01: Backend pool degraded — 3/5 backends unhealthy</span>
+              <span class="ev-badge badge-info">Info</span>
+            </div>
+          </div>
+
+          <div class="corr-result" id="corr-result">
+            <div style="font-family:'Source Code Pro',monospace;font-size:0.52rem;letter-spacing:3px;color:var(--t-act);text-transform:uppercase;margin-bottom:12px;">⬡ AIOps Correlation Engine — Output</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+              <div style="background:var(--dark2);border:1px solid var(--dark-bdr);padding:10px;">
+                <div style="font-family:'Source Code Pro',monospace;font-size:0.48rem;color:var(--t-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:3px;">Incident ID</div>
+                <div style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:var(--t-act)">INC-2026-08847</div>
+              </div>
+              <div style="background:var(--dark2);border:1px solid var(--dark-bdr);padding:10px;">
+                <div style="font-family:'Source Code Pro',monospace;font-size:0.48rem;color:var(--t-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:3px;">Alerts Grouped</div>
+                <div style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:var(--t-warn)" id="grp-count">8 → 1</div>
+              </div>
+              <div style="background:var(--dark2);border:1px solid var(--dark-bdr);padding:10px;">
+                <div style="font-family:'Source Code Pro',monospace;font-size:0.48rem;color:var(--t-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:3px;">Confidence</div>
+                <div style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:var(--t-ok)">87%</div>
+              </div>
+            </div>
+            <div style="font-size:0.78rem;color:#8aaccf;line-height:1.85;">
+              <strong style="color:#fff">Root Cause:</strong> db-primary disk I/O saturation → lock contention → connection pool exhaustion → cascading timeouts across payment-api, auth-service, user-service, order-service<br>
+              <strong style="color:#fff">Probable trigger:</strong> Full table scan (query_id: 4421) running since 14:15 — missing index on payments.created_at<br>
+              <strong style="color:#fff">Recommended action:</strong> Kill query_id 4421 → pool recovers in ~90 seconds<br>
+              <strong style="color:#fff">Owner:</strong> Database SRE · Runbook: DB-IOWAIT-LOCKCONTENTION
+            </div>
+            <div style="font-family:'Source Code Pro',monospace;font-size:0.58rem;color:var(--t-ok);margin-top:10px;">✓ 1 ticket created · 1 engineer paged · 7 duplicate alerts suppressed</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ REMEDIATION ═══ -->
+    <div class="tab-panel" id="tab-remediation">
+      <div class="sec-title">Auto-Remediation</div>
+      <div class="sec-sub">From detection to fix — without waking anyone up · click each step</div>
+
+      <p class="prose">Auto-remediation is the highest-maturity AIOps capability. When the system detects a known failure pattern with high confidence, it <em>executes the fix automatically</em> — eliminating the human delay (detection → page → engineer wakes up → triages → acts) which can be 15–45 minutes even for high-priority incidents.</p>
+
+      <div class="rem-grid">
+        <div class="rem-step" style="--rs-c:var(--cyan)" onclick="toggleRem('rd1',this)">
+          <div class="rs-icon">🔔</div>
+          <div class="rs-name">Detect</div>
+          <div class="rs-desc">Anomaly confirmed above confidence threshold</div>
+        </div>
+        <div class="rem-step" style="--rs-c:var(--blue)" onclick="toggleRem('rd2',this)">
+          <div class="rs-icon">🏷️</div>
+          <div class="rs-name">Classify</div>
+          <div class="rs-desc">ML identifies incident type + confidence score</div>
+        </div>
+        <div class="rem-step" style="--rs-c:var(--orange)" onclick="toggleRem('rd3',this)">
+          <div class="rs-icon">📋</div>
+          <div class="rs-name">Policy Check</div>
+          <div class="rs-desc">Is auto-remediation authorized for this type?</div>
+        </div>
+        <div class="rem-step" style="--rs-c:var(--teal)" onclick="toggleRem('rd4',this)">
+          <div class="rs-icon">⚡</div>
+          <div class="rs-name">Execute</div>
+          <div class="rs-desc">Runbook automation fires: restart, scale, failover</div>
+        </div>
+        <div class="rem-step" style="--rs-c:var(--green)" onclick="toggleRem('rd5',this)">
+          <div class="rs-icon">✅</div>
+          <div class="rs-name">Verify</div>
+          <div class="rs-desc">Confirm resolution, update ticket, close loop</div>
+        </div>
+
+        <div class="rem-detail" id="rd1"><strong>Detection:</strong> The AIOps platform confirms an anomaly — not just a single spike but a sustained deviation. Confidence scoring ensures the trigger is not tripped by transient noise. For auto-remediation, the detection confidence threshold is set higher (e.g., 95%) than for human-notification alerts (e.g., 70%).</div>
+        <div class="rem-detail" id="rd2"><strong>Classification:</strong> The ML incident classifier maps the detected pattern to a known incident category from historical data: OOM Kill, Connection pool exhaustion, Certificate expiry, Disk full, etc. Classification confidence determines whether auto-remediation fires or a human is paged instead.</div>
+        <div class="rem-detail" id="rd3"><strong>Policy Engine:</strong> Not every incident type should be automated. The policy engine checks: Is this incident type approved for automation? Is confidence above the auto-remediation threshold? Is the service in a safe state (not deploying, not in a change freeze)? Has this remediation been attempted recently (avoid loops)? Human approval gates can be applied per incident type or service tier.</div>
+        <div class="rem-detail" id="rd4"><strong>Execution:</strong> The runbook automation platform (Ansible, Rundeck, AWS Systems Manager, ServiceNow Orchestration) executes the pre-defined script. Examples: restart a crashed service, scale a Kubernetes deployment, clear a full log directory, flush a connection pool, failover to standby, renew a certificate. All execution is logged with full audit trail.</div>
+        <div class="rem-detail" id="rd5"><strong>Verification:</strong> After executing remediation, the system waits 60–120 seconds and re-checks the triggering metric. If cleared: ticket auto-closed, notification sent with full audit trail. If still anomalous: escalate to on-call engineer with full context pre-populated. The outcome feeds back into the ML model to improve future classification accuracy.</div>
+      </div>
+
+      <table class="data-table">
+        <thead><tr><th>Incident Type</th><th>Detection Signal</th><th>Auto-Remediation Action</th><th>Confidence Required</th></tr></thead>
+        <tbody>
+          <tr><td style="color:var(--teal);font-weight:600">Container OOM Kill</td><td>Pod restart count &gt; 3 in 10 min</td><td>Increase memory limit 25%, redeploy pod</td><td>&gt;90%</td></tr>
+          <tr><td style="color:var(--teal);font-weight:600">Runaway process — high CPU</td><td>CPU &gt; 3σ above baseline, single PID</td><td>Identify and kill offending process, alert owner</td><td>&gt;85%</td></tr>
+          <tr><td style="color:var(--teal);font-weight:600">Disk full — log accumulation</td><td>Disk &gt;92%, /var/log growing</td><td>Rotate and compress logs, archive to cold storage</td><td>&gt;95%</td></tr>
+          <tr><td style="color:var(--teal);font-weight:600">Certificate expiry &lt; 7 days</td><td>Cert scan job finds expiry window</td><td>Trigger ACME renewal, deploy new cert via Vault</td><td>&gt;99%</td></tr>
+          <tr><td style="color:var(--teal);font-weight:600">DB connection pool exhaustion</td><td>Pool utilization = 100% for &gt;60s</td><td>Restart pool manager, kill idle connections</td><td>&gt;88%</td></tr>
+          <tr><td style="color:var(--teal);font-weight:600">Pod scheduling failure</td><td>Pending pods &gt; 0 for &gt;5 min</td><td>Scale node group +2 nodes via cluster autoscaler</td><td>&gt;92%</td></tr>
+          <tr><td style="color:var(--orange);font-weight:600">Database primary failure</td><td>Primary unreachable, replica healthy</td><td>Human approval required — promote replica to primary</td><td>Human gate</td></tr>
+          <tr><td style="color:var(--red);font-weight:600">Data corruption detected</td><td>Checksum mismatch in storage layer</td><td>Human approval required — risk of data loss</td><td>Human gate</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout orange">
+        <strong>The automation boundary:</strong> Apply auto-remediation where actions are reversible, well-understood, and battle-tested. Irreversible actions (database failover, data deletion, security policy changes) should always require human approval regardless of confidence score. The goal is to automate the repetitive, low-risk 80% of incidents — not everything.
+      </div>
+    </div>
+
+    <!-- ═══ TOOLING ═══ -->
+    <div class="tab-panel" id="tab-tooling">
+      <div class="sec-title">AIOps Tooling Landscape</div>
+      <div class="sec-sub">Platforms · Point solutions · Open source · Cloud-native</div>
+
+      <p class="prose">The AIOps tooling landscape spans full-stack platforms (replace all monitoring) and point solutions (bolt-on intelligence to existing tools). <strong>Most enterprises use a hybrid approach</strong> — an AIOps platform that aggregates signals from existing monitoring tools rather than replacing them.</p>
+
+      <div class="tool-grid">
+        <div class="tool-card">
+          <div class="tc-name">Dynatrace</div>
+          <div class="tc-cat">Full-Stack AIOps Platform</div>
+          <div class="tc-desc">Davis AI engine. Auto-discovers full topology. Causal AI for root cause. Full-stack observability from host to user. Consistently leads Gartner AIOps Magic Quadrant.</div>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">ServiceNow AIOps</div>
+          <div class="tc-cat">ITSM + AIOps Integration</div>
+          <div class="tc-desc">Event Management + ITOM Predictive AIOps. Strong when ITSM is already ServiceNow. Correlates alerts into incidents and routes to CMDB-linked owners automatically.</div>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">Moogsoft</div>
+          <div class="tc-cat">Noise Reduction Specialist</div>
+          <div class="tc-desc">Purpose-built for alert correlation and noise suppression. ML-based event clustering. Integrates with existing monitoring tools rather than replacing them.</div>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">BigPanda</div>
+          <div class="tc-cat">Incident Intelligence</div>
+          <div class="tc-desc">Correlates alerts from 200+ monitoring tools. Change intelligence correlates deployments with incidents. Strong for hybrid-cloud environments.</div>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">Datadog AIOps</div>
+          <div class="tc-cat">Cloud-Native Observability</div>
+          <div class="tc-desc">Watchdog AI for anomaly detection. Correlation across metrics, logs, and traces. Strong for cloud-native and containerized environments. Native OpenTelemetry support.</div>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">New Relic AI</div>
+          <div class="tc-cat">Applied Intelligence</div>
+          <div class="tc-desc">Incident Intelligence for correlation. Proactive Detection for anomalies. Strong APM focus. Good for developer-centric teams with NRQL for custom ML-backed queries.</div>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">IBM Watson AIOps</div>
+          <div class="tc-cat">Enterprise AIOps</div>
+          <div class="tc-desc">Log anomaly detection. Similar incident identification. Runbook automation. Strong in enterprises with existing IBM stack (Netcool, TIVOLI). Slack and Teams integration.</div>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">Splunk ITSI</div>
+          <div class="tc-cat">IT Service Intelligence</div>
+          <div class="tc-desc">Service health scores. Episode review for correlation. Adaptive thresholds. Best for organizations with heavy existing Splunk investment. Deep log analytics foundation.</div>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">Prometheus + Grafana</div>
+          <div class="tc-cat">Open Source Foundation</div>
+          <div class="tc-desc">Not AIOps out-of-the-box but the data collection foundation. Add Grafana ML for anomaly detection, Alertmanager for grouping, and custom models for a DIY AIOps stack.</div>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">OpenTelemetry</div>
+          <div class="tc-cat">Observability Standard (CNCF)</div>
+          <div class="tc-desc">Vendor-neutral standard for metrics, logs, and traces. Prevents vendor lock-in at the data collection layer. Feeds any AIOps platform. Critical for modern architectures.</div>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">AWS DevOps Guru</div>
+          <div class="tc-cat">Cloud-Native AIOps (AWS)</div>
+          <div class="tc-desc">ML-powered anomaly detection for AWS workloads. Integrates natively with CloudWatch. Recommends remediation. No infrastructure to manage. Pay-per-use model.</div>
+        </div>
+        <div class="tool-card">
+          <div class="tc-name">Azure Monitor AIOps</div>
+          <div class="tc-cat">Cloud-Native AIOps (Azure)</div>
+          <div class="tc-desc">Smart detection, alert correlation, and dynamic thresholds built into Azure Monitor. Integrated with Log Analytics and Application Insights. Native for Azure workloads.</div>
+        </div>
+      </div>
+
+      <div class="callout blue">
+        <strong>Selection criteria:</strong> The most important factor is data coverage — the tool must ingest all your monitoring sources. Second: topology/CMDB integration quality (garbage in = garbage out for correlation). Third: integration with your ticketing system (ServiceNow, Jira). Prefer tools that aggregate existing monitoring rather than requiring a full replacement.
+      </div>
+    </div>
+
+    <!-- ═══ SIMULATOR ═══ -->
+    <div class="tab-panel" id="tab-simulator">
+      <div class="sec-title">AIOps Engine — Live Simulation</div>
+      <div class="sec-sub">Watch AI process and respond to incidents in real time</div>
+
+      <p class="prose">Select a scenario to see a full AIOps response cycle — from raw alert ingestion through correlation, root cause analysis, and automated remediation. Each scenario simulates a realistic production incident pattern.</p>
+
+      <div class="terminal">
+        <div class="term-bar">
+          <div class="term-dots">
+            <div class="term-dot" style="background:#ff5f57"></div>
+            <div class="term-dot" style="background:#ffbd2e"></div>
+            <div class="term-dot" style="background:#28c840"></div>
+          </div>
+          <div class="term-label">AIOps Engine — Production Environment</div>
+        </div>
+        <div class="term-out" id="term-out">
+          <span class="tl" style="color:var(--t-info)">AIOps Engine v4.2 — Initialized</span>
+          <span class="tl" style="color:var(--t-dim)">────────────────────────────────────────────────────</span>
+          <span class="tl" style="color:#4a6080">Monitoring: 847 hosts · 3,241 services · 14 data sources</span>
+          <span class="tl" style="color:#4a6080">ML models: Anomaly(IF+LSTM) · Correlation(DBSCAN) · RCA(GNN) · Classify(XGB)</span>
+          <span class="tl" style="color:var(--t-dim)"> </span>
+          <span class="tl" style="color:#304060">Select a scenario below to simulate an AIOps incident response...</span>
+        </div>
+        <div class="sim-btns">
+          <button class="sim-btn" onclick="runScenario('memleak')">Memory Leak</button>
+          <button class="sim-btn" onclick="runScenario('cascade')">Cascade Failure</button>
+          <button class="sim-btn" onclick="runScenario('predict')">Predictive Alert</button>
+          <button class="sim-btn" onclick="runScenario('storm')">Alert Storm</button>
+          <button class="sim-btn" onclick="runScenario('cert')">Cert Expiry</button>
+          <button class="sim-btn" onclick="clearTerm()" style="margin-left:auto">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ MATURITY ═══ -->
+    <div class="tab-panel" id="tab-maturity">
+      <div class="sec-title">AIOps Maturity Model</div>
+      <div class="sec-sub">Five levels from reactive monitoring to autonomous operations — click each level</div>
+
+      <p class="prose">AIOps adoption is a journey. Most enterprises start at Level 1 and build capability progressively — each level requires the previous as a foundation. <strong>Most enterprises today operate at Level 2–3.</strong> Level 5 (fully autonomous) is rare and typically limited to hyperscalers.</p>
+
+      <div class="mat-progress"><div class="mat-progress-fill" id="mat-fill"></div></div>
+
+      <div class="mat-levels">
+        <div class="mat-card" style="--mc-c:#8090a0" onclick="toggleMat('md1',this,20)">
+          <div class="mc-num">1</div>
+          <div class="mc-name">Reactive</div>
+          <div class="mc-desc">Static thresholds · manual triage · alert storms</div>
+        </div>
+        <div class="mat-card" style="--mc-c:var(--orange)" onclick="toggleMat('md2',this,40)">
+          <div class="mc-num">2</div>
+          <div class="mc-name">Assisted</div>
+          <div class="mc-desc">Unified data · basic ML anomaly detection</div>
+        </div>
+        <div class="mat-card" style="--mc-c:var(--cyan)" onclick="toggleMat('md3',this,60)">
+          <div class="mc-num">3</div>
+          <div class="mc-name">Proactive</div>
+          <div class="mc-desc">Correlation · RCA suggestions · predictive alerts</div>
+        </div>
+        <div class="mat-card" style="--mc-c:var(--teal)" onclick="toggleMat('md4',this,80)">
+          <div class="mc-num">4</div>
+          <div class="mc-name">Preventive</div>
+          <div class="mc-desc">Auto-remediation · closed-loop ops</div>
+        </div>
+        <div class="mat-card" style="--mc-c:var(--green)" onclick="toggleMat('md5',this,100)">
+          <div class="mc-num">5</div>
+          <div class="mc-name">Autonomous</div>
+          <div class="mc-desc">Self-healing · self-optimizing · policy-only humans</div>
+        </div>
+      </div>
+
+      <div class="mat-detail" id="md1">
+        <strong>Level 1 — Reactive:</strong> Traditional monitoring with static thresholds. Alert storms are the norm — hundreds or thousands of alerts per day, most of which are noise. Teams spend more time triaging alerts than fixing problems. No ML, no automation. MTTR measured in hours. Incidents are often discovered by users before engineers.<br><br>
+        <strong>Pain points:</strong> Alert fatigue, slow MTTR, repeated incidents, no learning from history.<br>
+        <strong>Typical tools:</strong> Nagios, Zabbix, basic Prometheus/Grafana, static PagerDuty rules.
+      </div>
+      <div class="mat-detail" id="md2">
+        <strong>Level 2 — Assisted:</strong> Data collection unified into a single observability platform. Basic ML anomaly detection replaces some static thresholds. Alert volume begins to decrease. Engineers receive context (CMDB enrichment, recent changes attached to alerts) but still do manual correlation and root cause analysis.<br><br>
+        <strong>Capabilities added:</strong> Unified observability (metrics + logs + traces), dynamic baselines, basic deduplication, CMDB integration, automated context enrichment.<br>
+        <strong>Typical outcome:</strong> 40–60% alert volume reduction, faster context gathering, but humans still do all triage.
+      </div>
+      <div class="mat-detail" id="md3">
+        <strong>Level 3 — Proactive:</strong> The transformative level. Event correlation reduces alert storms to manageable incident volumes. Root cause surfaced as suggestions. Predictive alerts warn of failures before they occur. Teams shift from reactive firefighting to proactive investigation.<br><br>
+        <strong>Capabilities added:</strong> ML-based event correlation, automated incident grouping, RCA recommendations, predictive failure detection, runbook suggestions.<br>
+        <strong>Typical outcome:</strong> 80–90% alert volume reduction, MTTR cut 50–60%, 40% of incidents detected before user impact.<br>
+        <strong>This is where most enterprise AIOps programs target.</strong>
+      </div>
+      <div class="mat-detail" id="md4">
+        <strong>Level 4 — Preventive:</strong> Auto-remediation closes the loop for known, low-risk incident types. The system detects, diagnoses, acts, and verifies — without waking an engineer — for incidents it recognizes. Humans focus on novel incidents, capacity planning, and improving the automation playbooks.<br><br>
+        <strong>Capabilities added:</strong> Runbook automation, auto-remediation policies, approval gates, post-incident learning, self-service operations portal.<br>
+        <strong>Typical outcome:</strong> 30–50% of incidents handled end-to-end without human action, MTTR for automated incidents under 5 minutes, significantly reduced on-call burden.
+      </div>
+      <div class="mat-detail" id="md5">
+        <strong>Level 5 — Autonomous:</strong> The system not only heals itself but optimizes itself — adjusting capacity, tuning configurations, evolving runbooks from outcomes. Infrastructure behaves like a self-managing system. Humans set policy and business objectives; AI handles operations.<br><br>
+        <strong>Capabilities added:</strong> Autonomous capacity management, continuous config optimization, ML-generated runbooks, multi-step remediation chains.<br>
+        <strong>Reality check:</strong> Very few enterprises operate at Level 5. Hyperscalers (Google, Netflix, Amazon) have autonomous ops for many subsystems. For most enterprises, Level 3–4 delivers enormous value and is the realistic target. Level 5 requires extraordinary confidence in model accuracy before autonomous action is safe.
+      </div>
+
+      <div class="callout teal" style="margin-top:16px;">
+        <strong>Where to start:</strong> Begin by unifying your data collection (OpenTelemetry + a central observability platform) before investing in ML capabilities. Poor data quality is the #1 reason AIOps implementations fail. Level 2 data quality unlocks Levels 3–5.
+      </div>
+    </div>
+
+  </div><!-- /tab-content -->
+</div><!-- /app -->
+
+<script>
+// ── Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const target = this.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById('tab-' + target).classList.add('active');
+    if (target === 'anomaly') setTimeout(drawAnomalyChart, 80);
+  });
+});
+
+// ── Pipeline toggle
+function togglePipe(id, el) {
+  const det = document.getElementById(id);
+  const isOpen = det.classList.contains('open');
+  document.querySelectorAll('.pipe-detail').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.ps-inner').forEach(b => b.classList.remove('active'));
+  if (!isOpen) { det.classList.add('open'); el.classList.add('active'); }
+}
+
+// ── ML toggle
+function toggleML(id, el) {
+  const det = document.getElementById(id);
+  const isOpen = det.classList.contains('open');
+  document.querySelectorAll('.ml-detail').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.ml-card').forEach(c => c.classList.remove('active'));
+  if (!isOpen) { det.classList.add('open'); el.classList.add('active'); }
+}
+
+// ── Remediation toggle
+function toggleRem(id, el) {
+  const det = document.getElementById(id);
+  const isOpen = det.classList.contains('open');
+  document.querySelectorAll('.rem-detail').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.rem-step').forEach(s => s.classList.remove('active'));
+  if (!isOpen) { det.classList.add('open'); el.classList.add('active'); }
+}
+
+// ── Maturity toggle
+function toggleMat(id, el, pct) {
+  const det = document.getElementById(id);
+  const isOpen = det.classList.contains('open');
+  document.querySelectorAll('.mat-detail').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.mat-card').forEach(c => c.classList.remove('active'));
+  if (!isOpen) {
+    det.classList.add('open');
+    el.classList.add('active');
+    document.getElementById('mat-fill').style.width = pct + '%';
+  } else {
+    document.getElementById('mat-fill').style.width = '0%';
+  }
+}
+
+// ── Event correlation
+function selectAllAlerts() {
+  document.querySelectorAll('.ev-row').forEach(r => r.classList.add('sel'));
+}
+function runCorrelation() {
+  const n = document.querySelectorAll('.ev-row.sel').length || 8;
+  document.getElementById('grp-count').textContent = n + ' → 1';
+  document.getElementById('corr-result').classList.add('open');
+}
+
+// ── Anomaly Chart
+function drawAnomalyChart() {
+  const canvas = document.getElementById('anomaly-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth;
+  const H = 180;
+  canvas.width = W;
+  canvas.height = H;
+
+  const N = 50;
+  const padL = 38, padR = 16, padT = 16, padB = 26;
+  const cw = W - padL - padR;
+  const ch = H - padT - padB;
+
+  const xp = i => padL + (i / (N - 1)) * cw;
+  const yp = v => padT + (1 - v / 220) * ch;
+
+  // baseline — diurnal pattern
+  const base = [], up = [], dn = [], actual = [];
+  for (let i = 0; i < N; i++) {
+    const b = 80 + 28 * Math.sin((i / N) * Math.PI * 2 - 0.5) + 14 * Math.sin((i / N) * Math.PI * 4);
+    base.push(b); up.push(b + 26); dn.push(Math.max(b - 26, 4));
+    let a = b + (Math.random() - 0.5) * 16;
+    if (i >= 6 && i <= 9) a = b + 32;   // false positive zone (static fires)
+    if (i >= 28 && i <= 31) a = b + 30; // false positive zone (static fires)
+    if (i >= 36 && i <= 42) a = b - 22; // real anomaly (below baseline)
+    actual.push(Math.max(a, 4));
+  }
+
+  // grid
+  ctx.strokeStyle = 'rgba(30,48,80,0.7)';
+  ctx.lineWidth = 1;
+  for (let v = 0; v <= 200; v += 50) {
+    ctx.beginPath(); ctx.moveTo(padL, yp(v)); ctx.lineTo(W - padR, yp(v)); ctx.stroke();
+    ctx.fillStyle = '#2a4060';
+    ctx.font = '9px Source Code Pro, monospace';
+    ctx.fillText(v, 2, yp(v) + 3);
+  }
+
+  // static threshold
+  ctx.strokeStyle = 'rgba(255,80,80,0.4)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath(); ctx.moveTo(padL, yp(160)); ctx.lineTo(W - padR, yp(160)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(255,80,80,0.55)';
+  ctx.font = '9px Source Code Pro, monospace';
+  ctx.fillText('Static 80%', W - padR - 62, yp(163));
+
+  // band fill
+  ctx.beginPath();
+  for (let i = 0; i < N; i++) i === 0 ? ctx.moveTo(xp(i), yp(up[i])) : ctx.lineTo(xp(i), yp(up[i]));
+  for (let i = N - 1; i >= 0; i--) ctx.lineTo(xp(i), yp(dn[i]));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(0,216,255,0.09)';
+  ctx.fill();
+
+  // baseline
+  ctx.strokeStyle = 'rgba(0,216,255,0.55)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  base.forEach((v, i) => i === 0 ? ctx.moveTo(xp(i), yp(v)) : ctx.lineTo(xp(i), yp(v)));
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // actual metric
+  ctx.strokeStyle = 'rgba(74,144,216,0.9)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  actual.forEach((v, i) => i === 0 ? ctx.moveTo(xp(i), yp(v)) : ctx.lineTo(xp(i), yp(v)));
+  ctx.stroke();
+
+  // false positives (static alarm only)
+  [[7, actual[7]], [29, actual[29]]].forEach(([i, v]) => {
+    ctx.fillStyle = 'rgba(255,80,80,0.65)';
+    ctx.beginPath(); ctx.arc(xp(i), yp(v), 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,80,80,0.7)';
+    ctx.font = '8px Source Code Pro, monospace';
+    ctx.fillText('FP', xp(i) - 5, yp(v) - 10);
+  });
+
+  // true anomaly
+  [37, 38, 39, 40, 41].forEach(i => {
+    ctx.fillStyle = '#ffaa00';
+    ctx.beginPath(); ctx.arc(xp(i), yp(actual[i]), 5, 0, Math.PI * 2); ctx.fill();
+  });
+  ctx.fillStyle = '#ffaa00';
+  ctx.font = '8px Source Code Pro, monospace';
+  ctx.fillText('Anomaly', xp(39) - 20, yp(actual[39]) + 16);
+
+  // axes
+  ctx.strokeStyle = 'rgba(30,48,80,0.9)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT); ctx.lineTo(padL, H - padB); ctx.lineTo(W - padR, H - padB);
+  ctx.stroke();
+
+  // x-axis label
+  ctx.fillStyle = '#2a4060';
+  ctx.font = '9px Source Code Pro, monospace';
+  ctx.fillText('Time →', W - padR - 40, H - padB + 16);
+}
+
+// ── Simulator
+const SCENARIOS = {
+  memleak: [
+    ['info','METRICS',   'payment-processor: heap_used_mb trending +2.3MB/min for 47 consecutive minutes'],
+    ['info','LSTM MODEL','Forecast: OOM event predicted in 38 minutes at current rate'],
+    ['warn','ANOMALY',   'Confirmed: heap_used_mb is 4.2σ above baseline for this service and time window'],
+    ['info','CLASSIFY',  'Incident type: MEMORY_LEAK · Confidence: 91% · Matched 34 historical incidents'],
+    ['info','TOPOLOGY',  'Service: payment-processor · Owner: payments-team · SLA tier: P1'],
+    ['warn','INCIDENT',  'INC-2026-09214 created · Severity: SEV2 · Blast radius: payment processing pipeline'],
+    ['info','POLICY',    'Auto-remediation check: MEMORY_LEAK · Confidence > 85% ✓ · Not in change freeze ✓'],
+    ['act', 'RUNBOOK',   'Executing: graceful-restart(payment-processor) — draining active connections first'],
+    ['ok',  'RUNBOOK',   'Connection drain complete (14 → 0) · Initiating service restart'],
+    ['ok',  'RUNBOOK',   'Service restarted · Health check: PASS · heap_used_mb: 312 (normal baseline)'],
+    ['ok',  'VERIFY',    'Anomaly cleared · Memory within normal band · INC-2026-09214 auto-resolved'],
+    ['ok',  'NOTIFY',    'payments-team notified: incident auto-resolved in 4m 12s · Audit log attached'],
+    ['info','FEEDBACK',  'Outcome recorded → ML model reinforced for MEMORY_LEAK pattern'],
+  ],
+  cascade: [
+    ['err', 'ALERT',     '[14:23:01] db-primary: Connection pool exhausted (0/200 available)'],
+    ['warn','ALERT',     '[14:23:04] payment-api: Response time p99 > 8000ms (threshold: 500ms)'],
+    ['err', 'ALERT',     '[14:23:06] auth-service: DB query timeout — 847 errors/min'],
+    ['warn','ALERT',     '[14:23:09] user-service: Health check failing — HTTP 503'],
+    ['err', 'ALERT',     '[14:23:11] db-primary: Disk I/O wait 94% elevated for 8 minutes'],
+    ['info','ALERT',     '[14:23:13] Splunk: "waiting for lock" pattern × 2,341 on db-primary'],
+    ['warn','ALERT',     '[14:23:15] order-service: Transaction error rate 34% — JDBC failures'],
+    ['info','ALERT',     '[14:23:18] load-balancer-01: 3/5 backends unhealthy'],
+    ['info','CORRELATE', '8 alerts received · Running temporal + topological correlation...'],
+    ['ok',  'CORRELATE', 'Grouped into 1 incident (confidence: 94%) · All events share db-primary in dependency path'],
+    ['info','RCA ENGINE','Graph traversal: connection pool ← disk I/O ← lock contention ← full table scan'],
+    ['ok',  'RCA ENGINE','Root cause (87%): Full table scan query_id 4421 started 14:15 — missing index on payments.created_at'],
+    ['warn','INCIDENT',  'INC-2026-08847 created · 7 duplicate alerts suppressed · Owner: db-sre-team'],
+    ['act', 'SUGGEST',   'Recommended: KILL query 4421 → pool recovers in ~90s · Runbook: DB-LOCK-RELIEF'],
+  ],
+  predict: [
+    ['info','METRICS',   'api-gateway-02: request_rate trending +8% per hour — 6 consecutive hours'],
+    ['info','METRICS',   'api-gateway-02: CPU at 67% (baseline: 48% for this time and day)'],
+    ['info','LSTM MODEL','Projecting forward 4 hours at current +8%/hr trajectory...'],
+    ['warn','FORECAST',  'Prediction: CPU will reach 95% in approximately 3h 40m'],
+    ['warn','FORECAST',  'Prediction: Memory will exhaust in 5h 15m at current allocation rate'],
+    ['info','CHANGE CTX','Correlating with change events: marketing campaign "SPRING24" launched 9h ago'],
+    ['ok',  'HISTORY',   'Historical match: similar traffic pattern during FALL23 — CPU peaked at 98%'],
+    ['warn','PROACTIVE', 'PROACTIVE ALERT: api-gateway-02 at risk of CPU saturation in ~3.5 hours'],
+    ['info','SUGGEST',   'Option A: Scale api-gateway +2 instances (autoscaler approval needed)'],
+    ['info','SUGGEST',   'Option B: Enable rate limiting on /search endpoint (highest traffic driver)'],
+    ['act', 'NOTIFY',    'Platform-team notified with full forecast context · 3.5h window to act preventively'],
+    ['ok',  'OUTCOME',   'Engineers scale +2 instances · Incident prevented · Users never impacted'],
+  ],
+  storm: [
+    ['warn','INGEST',    'Alert storm: 847 alerts received in 90 seconds from 23 monitoring sources'],
+    ['info','DEDUP',     'Deduplication: 847 alerts → 312 unique events (63% exact duplicates removed)'],
+    ['info','FILTER',    'Noise filter: 89 alerts suppressed (known flapping, maintenance window)'],
+    ['info','CLUSTER',   'Running DBSCAN clustering on 223 remaining events...'],
+    ['ok',  'CLUSTER',   'Clusters found: 3 distinct incident groups + 14 isolated low-priority alerts'],
+    ['info','TOPO',      'Cluster 1 (187 events): all trace to network-switch-core-01 in topology'],
+    ['info','TOPO',      'Cluster 2 (22 events): certificate expiry cascade on api-gateway tier'],
+    ['info','TOPO',      'Cluster 3 (14 events): storage array latency affecting 3 database hosts'],
+    ['ok',  'INCIDENTS', 'INC-2026-09341 (network) → network-team · INC-2026-09342 (cert) → pki-team'],
+    ['ok',  'INCIDENTS', 'INC-2026-09343 (storage) → storage-team · 14 low-priority → monitoring queue'],
+    ['ok',  'RESULT',    '847 raw alerts → 3 actionable incidents + 14 low-priority items'],
+    ['ok',  'RESULT',    'Alert noise reduction: 99.6% · 3 engineers paged instead of 847 notifications'],
+  ],
+  cert: [
+    ['info','CERT SCAN', 'TLS certificate scan running across 2,847 certificates in all environments'],
+    ['warn','CERT SCAN', 'Expiry risk: api-gateway.prod.company.com · Expires: 2026-03-20 (7 days)'],
+    ['info','CLASSIFY',  'Incident type: CERT_EXPIRY_7D · Confidence: 99.9% · Policy: auto-renew enabled'],
+    ['info','POLICY',    'Auto-remediation authorized: certificate renewal · No approval gate at > 7 days'],
+    ['act', 'ACME',      'Initiating Let\'s Encrypt renewal · Challenge type: DNS-01'],
+    ['ok',  'ACME',      'Domain validation complete · New certificate issued · Expires: 2026-06-11'],
+    ['act', 'VAULT',     'Storing new certificate in HashiCorp Vault: pki/certs/api-gateway'],
+    ['act', 'DEPLOY',    'Rolling deployment: updating TLS config on api-gateway-01, 02, 03'],
+    ['ok',  'DEPLOY',    'Certificate deployed on all 3 instances · Zero downtime · Old cert archived'],
+    ['ok',  'VERIFY',    'TLS scan: api-gateway.prod.company.com · Valid until 2026-06-11 ✓'],
+    ['ok',  'COMPLETE',  'INC-2026-09105 auto-resolved · security-team notified · 0 minutes of human time'],
+  ],
+};
+
+const COL = {
+  ok:   'color:var(--t-ok)',
+  warn: 'color:var(--t-warn)',
+  err:  'color:var(--t-err)',
+  act:  'color:var(--t-act)',
+  info: 'color:#6090c8',
+};
+
+let running = false;
+async function runScenario(key) {
+  if (running) return;
+  running = true;
+  const out = document.getElementById('term-out');
+  out.innerHTML = '';
+  const steps = SCENARIOS[key];
+
+  addLine('color:var(--t-info)', 'AIOps Engine', `▶ Scenario: ${key.toUpperCase()}`);
+  addLine('color:var(--t-dim)', '─', '────────────────────────────────────────────────────');
+
+  for (const [type, sys, msg] of steps) {
+    await wait(420 + Math.random() * 180);
+    const ts = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const sysStr = sys.padEnd(12);
+    addLine(COL[type] || 'color:#6090c8', sysStr, `[${ts}] ${msg}`, COL[type]);
+  }
+
+  addLine('color:var(--t-dim)', '─', '────────────────────────────────────────────────────');
+  addLine('color:var(--t-ok)', 'DONE', `${steps.length} events processed`);
+  running = false;
+}
+
+function addLine(sysStyle, sys, msg, msgStyle) {
+  const out = document.getElementById('term-out');
+  const span = document.createElement('span');
+  span.className = 'tl';
+  if (sys === '─') {
+    span.innerHTML = `<span style="color:var(--t-dim)">${msg}</span>`;
+  } else {
+    span.innerHTML = `<span style="${sysStyle};font-weight:600">${sys.padEnd(12)}</span> <span style="${msgStyle||'color:#4a6080'}">${msg}</span>`;
+  }
+  out.appendChild(span);
+  out.scrollTop = out.scrollHeight;
+}
+
+function clearTerm() {
+  document.getElementById('term-out').innerHTML = '<span class="tl" style="color:var(--t-dim)">Terminal cleared — select a scenario to run.</span>';
+}
+
+function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Init chart on load if anomaly tab is somehow active
+window.addEventListener('load', () => {
+  if (document.getElementById('tab-anomaly').classList.contains('active')) drawAnomalyChart();
+});
+</script>
+<!-- HAS Watermark -->
+<div style="
+  position: fixed;
+  top: 18px;
+  right: 24px;
+  z-index: 9999;
+  text-align: right;
+  pointer-events: none;
+  user-select: none;
+">
+  <div style="
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: var(--blue);
+    line-height: 1;
+    opacity: 0.82;
+  ">HAS</div>
+  <div style="
+    font-family: 'Source Code Pro', monospace;
+    font-size: 0.42rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    opacity: 0.7;
+    margin-top: 2px;
+  ">Helping Achieve Success</div>
+</div>
+
+</body>
+</html>
